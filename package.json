@@ -1,0 +1,22 @@
+{
+  "name": "hedgehog-games",
+  "private": true,
+  "description": "Hedgeroll and Hedgehop, packaged as iPhone and Android apps with Capacitor.",
+  "workspaces": [
+    "apps/hedgeroll",
+    "apps/hedgehop"
+  ],
+  "scripts": {
+    "web": "node tools/build-web.mjs",
+    "site": "node tools/build-web.mjs && node tools/build-site.mjs",
+    "art": "node tools/draw-art.mjs",
+    "native": "node tools/setup-native.mjs",
+    "native:reset": "node tools/setup-native.mjs --reset",
+    "sync": "node tools/setup-native.mjs --sync-only"
+  },
+  "devDependencies": {
+    "@fontsource/lilita-one": "5.3.0",
+    "@fontsource/sniglet": "5.3.0",
+    "@napi-rs/canvas": "1.0.11"
+  }
+}

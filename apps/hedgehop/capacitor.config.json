@@ -1,0 +1,14 @@
+{
+  "appId": "com.changeme.hedgehop",
+  "appName": "Hedgehop",
+  "webDir": "www",
+  "backgroundColor": "#24452b",
+  "ios": {
+    "contentInset": "never",
+    "scrollEnabled": false,
+    "backgroundColor": "#24452b"
+  },
+  "android": {
+    "backgroundColor": "#24452b"
+  }
+}

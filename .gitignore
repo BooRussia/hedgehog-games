@@ -1,0 +1,8 @@
+node_modules/
+# built by npm run web / npm run site
+apps/*/www/
+site/
+.DS_Store
+Thumbs.db
+*.keystore
+*.jks
