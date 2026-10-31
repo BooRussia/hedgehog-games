@@ -42,7 +42,7 @@ character count and the store's limit.
 
 **App Review notes**
 
-> An endless bouncing game that runs fully offline. There is no login, no network use and no data collection. Tap Play, then hold the left or right side of the screen to steer.
+> An endless bouncing game that runs fully offline. There is no login, no network use and no data collection. Tap Play, then swipe left and right anywhere on the screen to steer.
 
 ## Google Play Console
 

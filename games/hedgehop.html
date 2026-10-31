@@ -4,7 +4,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Sniglet:wght@400;800&display=swap">
 <style>
-/* Layout: one full-bleed canvas column climbing the forest; a hanging wooden sign HUD up top, steering pads in the bottom corners */
+/* Layout: one full-bleed canvas column climbing the forest; a hanging wooden sign HUD up top; swipe anywhere to steer */
 :root {
   --wood-hi: #dc9d5c;
   --wood-lo: #9a5a28;
@@ -103,19 +103,6 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .btn-go svg { width: 22px; height: 22px; filter: drop-shadow(0 2px 0 var(--leaf-dark)); }
 .btn-go:active { transform: translateY(4px); box-shadow: inset 0 3px 0 rgba(255, 255, 255, .45), inset 0 -4px 0 rgba(0, 0, 0, .16), 0 1px 0 var(--leaf-dark); }
 
-/* steering pads: touch screens only, they light up while held */
-.pad {
-  position: absolute; bottom: calc(18px + env(safe-area-inset-bottom, 0px));
-  display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%;
-  background: rgba(36, 20, 8, .3); border: 2px solid rgba(255, 243, 209, .22); color: var(--cream);
-  pointer-events: none; transition: transform .08s, background-color .08s;
-}
-#pad-l { left: max(16px, env(safe-area-inset-left, 0px)); }
-#pad-r { right: max(16px, env(safe-area-inset-right, 0px)); }
-.pad svg { width: 28px; height: 28px; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, .35)); }
-.pad.on { background: rgba(36, 20, 8, .62); transform: scale(.92); }
-@media (hover: hover) and (pointer: fine) { .pad { display: none; } }
-
 #hint, .tip {
   width: max-content; max-width: min(320px, calc(100% - 32px)); padding: 7px 14px; border-radius: 14px;
   background: rgba(30, 18, 6, .6); font-weight: 800; font-size: 14px; line-height: 1.3; text-align: center;
@@ -202,7 +189,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 </style>
 
 <div id="app">
-  <canvas id="stage" aria-label="A hedgehog bouncing up through the forest. Hold left or right to steer."></canvas>
+  <canvas id="stage" aria-label="A hedgehog bouncing up through the forest. Swipe left or right, or use the arrow keys, to steer."></canvas>
 
   <div id="hud" hidden>
     <div class="chip" id="berry-chip" aria-label="Berries collected">
@@ -210,11 +197,6 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
     </div>
     <div class="sign plank"><span class="sign-num" id="height-num">0 m</span><span class="sign-name" id="zone-name">Morning Glade</span></div>
     <button class="btn-wood small" id="btn-pause" aria-label="Pause"><svg viewBox="0 0 24 24"><use href="#i-pause"/></svg></button>
-  </div>
-
-  <div id="pads" hidden aria-hidden="true">
-    <div class="pad" id="pad-l"><svg viewBox="0 0 24 24"><use href="#i-left"/></svg></div>
-    <div class="pad" id="pad-r"><svg viewBox="0 0 24 24"><use href="#i-right"/></svg></div>
   </div>
 
   <div id="hint" class="gone"></div>
@@ -285,8 +267,6 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
     <symbol id="i-pause" viewBox="0 0 24 24"><g fill="currentColor"><rect x="5.5" y="4.5" width="4.6" height="15" rx="2"/><rect x="13.9" y="4.5" width="4.6" height="15" rx="2"/></g></symbol>
     <symbol id="i-retry" viewBox="0 0 24 24"><path d="M19.5 12A7.5 7.5 0 1 1 17 6.4M17.5 2.5v4.5H13" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11.5 12 4.5l8 7M6.5 9.5V20h11V9.5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 20v-5.5a2 2 0 0 1 4 0V20" fill="currentColor"/></symbol>
-    <symbol id="i-left" viewBox="0 0 24 24"><path d="M15 4.5 7.5 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-    <symbol id="i-right" viewBox="0 0 24 24"><path d="m9 4.5 7.5 7.5L9 19.5" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5v14l-4.5-4.5H4z" fill="currentColor"/><path d="M15.5 9a4.5 4.5 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
     <symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5v14l-4.5-4.5H4z" fill="currentColor"/><path d="m15.5 9.5 5 5m0-5-5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
   </defs>
@@ -437,13 +417,17 @@ const Core = (() => {
   function end(s, r) { s.result = r; s.events.push({ type: 'end', r }); }
 
   // dir: -1 steer left, 0 none, 1 steer right
-  function step(s, dt, dir) {
+  // glide: while a finger is swiping, the sideways speed that keeps him under it (overrides dir)
+  function step(s, dt, dir, glide) {
     if (s.result) return;
     const p = s.p, ev = s.events;
     s.t += dt;
-    if (dir) { p.vx += dir * AX * dt; p.face = dir; }
-    else { const f = FRIC * dt; p.vx = Math.abs(p.vx) <= f ? 0 : p.vx - Math.sign(p.vx) * f; }
-    p.vx = clamp(p.vx, -VX, VX);
+    if (glide != null) { p.vx = glide; if (glide) p.face = glide > 0 ? 1 : -1; }
+    else {
+      if (dir) { p.vx += dir * AX * dt; p.face = dir; }
+      else { const f = FRIC * dt; p.vx = Math.abs(p.vx) <= f ? 0 : p.vx - Math.sign(p.vx) * f; }
+      p.vx = clamp(p.vx, -VX, VX);
+    }
     if (p.float > 0) {
       p.float -= dt;
       p.vy += (-FLOAT_V - p.vy) * Math.min(1, dt * 5);
@@ -714,7 +698,7 @@ const sfx = {
 function buzz(ms) { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) { /* not supported */ } }
 
 // ---------- HUD ----------
-const hud = $('hud'), pads = $('pads'), hint = $('hint'), toast = $('toast');
+const hud = $('hud'), hint = $('hint'), toast = $('toast');
 let hudM = -1, hudZone = -1, hudB = -1;
 function resetHud() { hudM = -1; hudZone = -1; hudB = -1; updateHud(); }
 function updateHud() {
@@ -738,7 +722,7 @@ function showToast(text, ms = 1300) {
   toast.textContent = text; toast.classList.add('show');
   clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('show'), ms);
 }
-const STEER_TEXT = touchFirst ? 'Hold the left or right side to steer' : 'Steer with the arrow keys or A and D';
+const STEER_TEXT = touchFirst ? 'Swipe left and right to steer' : 'Steer with the arrow keys or A and D';
 let hintTimer = 0;
 function showHint() {
   hint.textContent = STEER_TEXT; hint.classList.remove('gone');
@@ -756,7 +740,6 @@ function show(screen) {
   $('pause').hidden = screen !== 'pause';
   $('result').hidden = screen !== 'result';
   hud.hidden = !(screen === 'play' || screen === 'pause');
-  pads.hidden = screen !== 'play';
   if (screen !== 'play') hint.classList.add('gone');
   if (screen === 'title') {
     $('title-best').hidden = best <= 0;
@@ -768,6 +751,7 @@ function startRun() {
   const run = G.run;
   G.mode = 'run'; G.paused = false; acc = 0;
   G.prevBest = best; G.bestToast = false; G.steered = false;
+  swipe.id = null; swipe.pending = 0;
   run.p.vy = -Core.JUMP; run.p.sq = 1;
   show('play'); resetHud(); showHint(); sfx.start();
   cv.focus({ preventScroll: true });
@@ -775,7 +759,7 @@ function startRun() {
 function setPaused(on) {
   if (on && (G.screen !== 'play' || G.mode !== 'run')) return;
   if (!on && G.screen !== 'pause') return;
-  G.paused = on; held.clear(); keys.l = keys.r = false;
+  G.paused = on; swipe.id = null; swipe.pending = 0; keys.l = keys.r = false;
   if (on) {
     const m = Math.floor(G.run.maxH / M), b = G.run.berries;
     $('pause-text').textContent = `${m} m climbed and ${b} ${b === 1 ? 'berry' : 'berries'} so far.`;
@@ -826,25 +810,28 @@ function showResult() {
 
 // ---------- steering input ----------
 const keys = { l: false, r: false };
-const held = new Map();
-let lastPointer = null;
-function sideOf(e) { const rc = cv.getBoundingClientRect(); return e.clientX - rc.left < rc.width / 2 ? -1 : 1; }
-function steerDir() {
-  const k = (keys.r ? 1 : 0) - (keys.l ? 1 : 0);
-  if (keys.l || keys.r) return k;
-  if (lastPointer != null && held.has(lastPointer)) return held.get(lastPointer);
-  for (const v of held.values()) return v;
-  return 0;
-}
+function steerDir() { return (keys.r ? 1 : 0) - (keys.l ? 1 : 0); }
+
+// Swiping: he slides sideways as far as the finger does (a bit further, so short thumb swipes reach),
+// catching up at up to SWIPE_VX when the finger outruns him. pending is the distance still to cover.
+const SWIPE_GAIN = 1.25, SWIPE_VX = Core.VX * 2, SWIPE_LAG = SWIPE_VX * 0.25;
+const swipe = { id: null, x: 0, pending: 0 };
 cv.addEventListener('pointerdown', (e) => {
   if (G.screen !== 'play') return;
   audio();
-  try { cv.setPointerCapture(e.pointerId); } catch (err) { /* capture unsupported */ }
-  held.set(e.pointerId, sideOf(e)); lastPointer = e.pointerId;
   e.preventDefault();
+  if (swipe.id != null) return; // the first finger down steers
+  try { cv.setPointerCapture(e.pointerId); } catch (err) { /* capture unsupported */ }
+  swipe.id = e.pointerId; swipe.x = e.clientX;
 });
-cv.addEventListener('pointermove', (e) => { if (held.has(e.pointerId)) held.set(e.pointerId, sideOf(e)); });
-const release = (e) => { held.delete(e.pointerId); if (lastPointer === e.pointerId) lastPointer = null; };
+cv.addEventListener('pointermove', (e) => {
+  if (e.pointerId !== swipe.id) return;
+  const dx = (e.clientX - swipe.x) / S * SWIPE_GAIN;
+  swipe.x = e.clientX;
+  if (dx * swipe.pending < 0) swipe.pending = 0; // turning back drops what was left the other way
+  swipe.pending = clamp(swipe.pending + dx, -SWIPE_LAG, SWIPE_LAG);
+});
+const release = (e) => { if (e.pointerId === swipe.id) swipe.id = null; };
 cv.addEventListener('pointerup', release);
 cv.addEventListener('pointercancel', release);
 cv.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -863,7 +850,7 @@ window.addEventListener('keyup', (e) => {
   if (k === 'ArrowLeft' || k === 'a' || k === 'A') keys.l = false;
   else if (k === 'ArrowRight' || k === 'd' || k === 'D') keys.r = false;
 });
-window.addEventListener('blur', () => { keys.l = keys.r = false; held.clear(); });
+window.addEventListener('blur', () => { keys.l = keys.r = false; swipe.id = null; swipe.pending = 0; });
 document.addEventListener('visibilitychange', () => { if (document.hidden) setPaused(true); });
 
 // ---------- ambient ----------
@@ -1442,12 +1429,14 @@ function frame(now) {
     T += dt;
     if (G.mode === 'run') {
       const dir = steerDir();
-      if (dir && !G.steered) { G.steered = true; clearTimeout(hintTimer); hintTimer = setTimeout(() => hint.classList.add('gone'), 1200); }
-      $('pad-l').classList.toggle('on', dir < 0); $('pad-r').classList.toggle('on', dir > 0);
+      // keys win over a swipe; a resting finger holds him still sideways
+      const glide = !dir && (swipe.id != null || swipe.pending) ? clamp(swipe.pending / dt, -SWIPE_VX, SWIPE_VX) : null;
+      if ((dir || swipe.pending) && !G.steered) { G.steered = true; clearTimeout(hintTimer); hintTimer = setTimeout(() => hint.classList.add('gone'), 1200); }
       acc += dt;
       const h = 1 / 240; let n = 0;
-      while (acc >= h && n < 16 && !run.result) { Core.step(run, h, dir); acc -= h; n++; }
+      while (acc >= h && n < 16 && !run.result) { Core.step(run, h, dir, glide); acc -= h; n++; }
       if (n >= 16) acc = 0;
+      if (glide != null) { swipe.pending -= glide * n * h; if (Math.abs(swipe.pending) < 0.01) swipe.pending = 0; }
       handleEvents();
       updateHud();
       if (run.p.float > 0) { G.seedT -= dt; if (G.seedT <= 0) { G.seedT = 0.07; seeds(run.p.x, run.p.y - R - 42, 1); } }
